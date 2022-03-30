@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/jeyoungjung/zerocoin/person"
+)
 
 func main() {
-	fmt.Println("its working")
+	jay := person.Person{}
+	jay.SetDetails("jay", 19)
+	fmt.Println("main jay", jay)
+    fmt.Println(jay.Name())
 }
