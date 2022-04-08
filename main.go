@@ -1,46 +1,69 @@
 package main
 
 import (
-	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/jeyoungjung/zerocoin/blockchain"
+	"github.com/jeyoungjung/zerocoin/utils"
 )
 
-type block struct {
-	data     string
-	hash     string
-	prevHash string
+type URL string
+
+func (u URL) MarshalText() ([]byte, error) {
+	url := fmt.Sprintf("http://localhost%s%s", port, u)
+	return []byte(url), nil
 }
 
-type blockchain struct {
-	blocks []block
+const port string = ":3000"
+
+type URLDescription struct {
+	URL         URL    `json:"url"`
+	Method      string `json:"method"`
+	Description string `json:"description"`
+	Payload     string `json:"payload,omitempty"`
 }
 
-func (b *blockchain) getPrevHash () string {
-	if (len(b.blocks) > 0) {
-		return b.blocks[len(b.blocks)-1].hash
+func documentation(rw http.ResponseWriter, r *http.Request) {
+	data := []URLDescription{
+		{
+			URL:         URL("/"),
+			Method:      "GET",
+			Description: "See description",
+		}, {
+			URL:         URL("/blocks"),
+			Method:      "POST",
+			Description: "Add A Block",
+			Payload:     "data:string",
+		},
 	}
-	return ""
+	rw.Header().Add("Content-type", "application/json")
+	json.NewEncoder(rw).Encode(data)
 }
 
-func (b *blockchain) addBlock (data string) {
-	newBlock := block{data, "", b.getPrevHash()}
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(newBlock.data + newBlock.prevHash)))
-	newBlock.hash = hash
-	b.blocks = append(b.blocks, newBlock)
+
+type AddBlockBody struct {
+	Message string
 }
 
-func (b blockchain) listBlockchain () {
-	for _, block := range b.blocks {
-		fmt.Printf("data: %s\n", block.data)
-		fmt.Printf("hash: %s\n", block.hash)
-		fmt.Printf("prev data: %s\n", block.prevHash)
+func blocks(rw http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		rw.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(rw).Encode(blockchain.GetBlockchain().AllBlocks())
+	case "POST":
+		var addBlockBody AddBlockBody
+		utils.HandleErr(json.NewDecoder(r.Body).Decode(&addBlockBody))
+		blockchain.GetBlockchain().AddBlock(addBlockBody.Message)
+		rw.WriteHeader(http.StatusCreated)
 	}
 }
 
 func main() {
-	blockchain := blockchain{};
-	blockchain.addBlock("Genesis Block")
-	blockchain.addBlock("Second Block")
-	blockchain.addBlock("Third Block")
-	blockchain.listBlockchain()
+	http.HandleFunc("/", documentation)
+	http.HandleFunc("/blocks", blocks)
+	fmt.Printf("Listening on http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, nil))
 }
