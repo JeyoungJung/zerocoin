@@ -6,11 +6,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/jeyoungjung/zerocoin/blockchain"
 )
 
+var port string
+
 const (
-	port        string = ":3000"
 	templateDir string = "explorer/templates/"
 )
 
@@ -38,11 +40,13 @@ func add(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Start() {
+func Start(explorerPort int) {
+	port = fmt.Sprintf(":%d", explorerPort)
+	handler := mux.NewRouter()
 	templates = template.Must(template.ParseGlob(templateDir + "pages/*.gohtml"))
 	templates = template.Must(templates.ParseGlob(templateDir + "partials/*.gohtml"))
-	http.HandleFunc("/", home)
-	http.HandleFunc("/add", add)
-	fmt.Printf("Listening on port %s\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	handler.HandleFunc("/", home)
+	handler.HandleFunc("/add", add)
+	fmt.Printf("Listening on http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, handler))
 }
