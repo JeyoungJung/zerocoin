@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/jeyoungjung/zerocoin/blockchain"
@@ -40,7 +39,7 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Description: "Add A Block",
 			Payload:     "data:string",
 		}, {
-			URL:         url("/blocks/{height}"),
+			URL:         url("/blocks/{hash}"),
 			Method:      "GET",
 			Description: "See A Block",
 		},
@@ -59,14 +58,14 @@ type addBlockBody struct {
 func blocks(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.GetBlockchain().AllBlocks()))
-		// converts the blockchain data to json
+		json.NewEncoder(rw).Encode(blockchain.Blockchain().GetBlockchain())
+		//converts the blockchain data to json
 	case "POST":
 		var addBlockBody addBlockBody
 		utils.HandleErr(json.NewDecoder(r.Body).Decode(&addBlockBody)) // this function returns an error, hence the utils.HandleErr()
 		// Explanation: new decoder is made, the the r.body (consisting of data like "second block") is decoded into the actual addBlockBody
 		// https://stackoverflow.com/questions/21197239/decoding-json-using-json-unmarshal-vs-json-newdecoder-decode
-		blockchain.GetBlockchain().AddBlock(addBlockBody.Message)
+		blockchain.Blockchain().AddBlock(addBlockBody.Message)
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
@@ -76,12 +75,11 @@ type errorResponse struct {
 }
 
 func block(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["height"])
-	utils.HandleErr(err)
-	block, err := blockchain.GetBlockchain().GetBlock(id)
+	vars := mux.Vars(r) // from the documentation for gorilla mux
+	hash := vars["hash"]
+	block, err := blockchain.FindBlock(hash)
 	encoder := json.NewEncoder(rw)
-	if err == blockchain.ErrorBlockOutOfRange { // if error is same as the error we made in blockchain.go
+	if err == blockchain.ErrBlockNotFound { // if error is same as the error we made in blockchain.go
 		encoder.Encode(errorResponse{fmt.Sprint(err)}) // put the error inside the errorResponse and encode it as json
 	} else {
 		encoder.Encode(block)
@@ -101,7 +99,7 @@ func Start(startPort int) {
 	router.Use(jsonContentTypeMiddleware)
 	router.HandleFunc("/", documentation)
 	router.HandleFunc("/blocks", blocks)
-	router.HandleFunc("/blocks/{height:[0-9]+}", block) // means that the height can only be an int
+	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block) // means that the hash can have values from a-f and 0-9 (hexadecimal)
 	fmt.Printf("Listening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
