@@ -1,11 +1,8 @@
 package main
 
-import (
-	"github.com/jeyoungjung/zerocoin/cli"
-	"github.com/jeyoungjung/zerocoin/db"
-)
+import "github.com/jeyoungjung/zerocoin/cli"
 
 func main() {
-	defer db.CloseDatabase()
+	defer db.Close()
 	cli.Start()
 }

@@ -86,7 +86,8 @@ func block(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func jsonContentTypeMiddleware(next http.Handler) http.Handler {
+func jsonContentTypeMiddleware(next http.Handler) http.Handler { // this function is a middleware that sets the content-type to be json,
+	// this let's the browser know that the file we are passing is json.
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(rw, r) // this just goes to the next handler
