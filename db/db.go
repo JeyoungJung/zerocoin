@@ -17,15 +17,17 @@ const (
 
 var db *bolt.DB
 
-func getDbName() string {
+// DbName returns the name for the Db according to the port number
+func DbName() string {
 	port := os.Args[2][6:]
 	return fmt.Sprintf("%s_%s.db", dbName, port)
 }
 
-func DB() *bolt.DB { // initializes the database
+// DB initializes the database
+func DB() *bolt.DB {
 	if db == nil {
-		dbPointer, err := bolt.Open(getDbName(), 0600, nil) // 0600 is the code required for read and write permissions?
-		db = dbPointer                                      // now that the database is made, we can assign it to the original db
+		dbPointer, err := bolt.Open(DbName(), 0600, nil) // 0600 is the code required for read and write permissions?
+		db = dbPointer                                   // now that the database is made, we can assign it to the original db
 		utils.HandleErr(err)
 		err = db.Update(func(t *bolt.Tx) error { // makes buckets, this is the syntax shown in the actual github for bolt (just copy paste)
 			_, err := t.CreateBucketIfNotExists([]byte(checkpointBucket)) // creates a bucket named "checkpoints", this bucket only holds the data for the checkpoints
@@ -39,7 +41,8 @@ func DB() *bolt.DB { // initializes the database
 	return db
 }
 
-func SaveBlock(hash string, data []byte) { // this function saves the actual data for the block
+// SaveBlock saves the data for the block into the blocksBucket
+func SaveBlock(hash string, data []byte) {
 	// [hash : data] key value pair
 	err := DB().Update(func(t *bolt.Tx) error {
 		bucket := t.Bucket([]byte(blocksBucket))
@@ -47,27 +50,6 @@ func SaveBlock(hash string, data []byte) { // this function saves the actual dat
 		return err
 	})
 	utils.HandleErr(err)
-}
-
-func SaveCheckpoint(data []byte) { // this function saves the data for the checkpoint only
-	// ["checkpoint": data]
-	err := DB().Update(func(t *bolt.Tx) error {
-		bucket := t.Bucket([]byte(checkpointBucket))
-		err := bucket.Put([]byte(checkpoint), data) // since the "key" has to be unique,
-		// the data is replaced everytime there is a new block as the "key" remains to be "checkpoint" all the time
-		return err
-	})
-	utils.HandleErr(err)
-}
-
-func GetCheckpointData() []byte { // this function retrieves the data for the checkpoint
-	var data []byte // has to be declared to return the data
-	DB().View(func(t *bolt.Tx) error {
-		bucket := t.Bucket([]byte(checkpointBucket))
-		data = bucket.Get([]byte(checkpoint)) // gets the data from the checkpoint
-		return nil
-	})
-	return data
 }
 
 func GetBlockData(hash string) []byte {
@@ -80,11 +62,35 @@ func GetBlockData(hash string) []byte {
 	return data
 }
 
+// SaveCheckpoint saves the data for the checkpoint only
+func SaveCheckpoint(data []byte) {
+	// ["checkpoint": data]
+	err := DB().Update(func(t *bolt.Tx) error {
+		bucket := t.Bucket([]byte(checkpointBucket))
+		err := bucket.Put([]byte(checkpoint), data) // since the "key" has to be unique,
+		// the data is replaced everytime there is a new block as the "key" remains to be "checkpoint" all the time
+		return err
+	})
+	utils.HandleErr(err)
+}
+
+// GetCheckpointData retrieves the data for the checkpoint
+func GetCheckpointData() []byte {
+	var data []byte // has to be declared to return the data
+	DB().View(func(t *bolt.Tx) error {
+		bucket := t.Bucket([]byte(checkpointBucket))
+		data = bucket.Get([]byte(checkpoint)) // gets the data from the checkpoint
+		return nil
+	})
+	return data
+}
+
 func CloseDatabase() {
 	DB().Close()
 }
 
-func EmptyBlocks() { // deletes the current blocksbucket and creates a new one
+// EmptyBlocksBucket deletes the current blocksbucket and creates a new one
+func EmptyBlocksBucket() {
 	DB().Update(func(t *bolt.Tx) error {
 		utils.HandleErr(t.DeleteBucket([]byte(blocksBucket)))
 		_, err := t.CreateBucket([]byte(blocksBucket))

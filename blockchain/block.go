@@ -37,7 +37,8 @@ func persistBlock(b *Block) {
 	db.SaveBlock(b.Hash, utils.EncodeToBytes(b)) // saves the data, hash, prevhash and height in bytes, to the db
 }
 
-func (b *Block) mine() { // the function where you have to "solve" the "puzzle"
+// mine is the function where you have to "solve" the "puzzle"
+func (b *Block) mine() {
 	target := strings.Repeat("0", b.Difficulty) // amount of zeros required for the hash; repeated b.difficulty amount of times
 	for {
 		b.Timestamp = int(time.Now().Unix()) // current time since jan 1st 1970, in seconds

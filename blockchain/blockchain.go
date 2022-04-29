@@ -26,7 +26,8 @@ type blockchain struct {
 var b *blockchain
 var once sync.Once
 
-func Blockchain() *blockchain { // this function makes a new blockchain or restores an existing blockchain when ran for the first time
+// Blockchain makes a new blockchain or restores an existing blockchain when ran for the first time
+func Blockchain() *blockchain {
 	// or just returns the blockchain in the databse if its not the first time running
 	once.Do(func() { // https://medium.com/easyread/just-call-your-code-only-once-256f69ed39a8
 		// Do function will not end until the function inside the Do function ends. Meaning it will cause a deadlock
@@ -66,7 +67,8 @@ func persistBlockchain(b *blockchain) {
 	db.SaveCheckpoint(utils.EncodeToBytes(b)) // Sends the newest hash and height in bytes
 }
 
-func GetBlockchain(b *blockchain) []*Block { // this function gets every block
+// GetBlockchain gets every block from the blockchain
+func GetBlockchain(b *blockchain) []*Block {
 	b.m.Lock()
 	defer b.m.Unlock()
 	var blocks []*Block
@@ -109,21 +111,24 @@ func recalculateDifficulty(b *blockchain) int {
 	return b.CurrentDifficulty // if its in range, return the current difficulty
 }
 
-func (b *blockchain) Replace(newBlockchain []*Block) { // this function empties the current blockchain and replaces it with the new blockchain
+// Replace empties the current blockchain and replaces it with the new blockchain
+func (b *blockchain) Replace(newBlockchain []*Block) {
 	b.m.Lock()
 	defer b.m.Unlock()
 	b.CurrentDifficulty = newBlockchain[0].Difficulty
 	b.Height = len(newBlockchain)
 	b.NewestHash = newBlockchain[0].Hash
-	db.EmptyBlocks()
+	db.EmptyBlocksBucket()
 	persistBlockchain(b)
 	for _, block := range newBlockchain {
 		persistBlock(block)
 	}
 }
 
-func (b *blockchain) AddPeerBlock(newBlock *Block) { // this function adds the new block from the peer to the current blockchain
-	// this function is called everytime a new block is made by someone
+// AddPeerBlock adds the new block from the peer to the current blockchain
+// AddPeerBlock is called everytime a new block is made by someone
+func (b *blockchain) AddPeerBlock(newBlock *Block) {
+
 	b.m.Lock()
 	m.m.Lock()
 	defer b.m.Unlock()

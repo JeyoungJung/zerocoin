@@ -41,7 +41,8 @@ func initPeer(conn *websocket.Conn, address, port string) *peer {
 	return p
 }
 
-func (p *peer) read() { // this function reads messages
+// read reads messages and handles them
+func (p *peer) read() {
 	defer p.close() // closes the peer at the end of the function (means that the connection has been closed)
 	for {
 		m := Message{}
@@ -53,6 +54,7 @@ func (p *peer) read() { // this function reads messages
 	}
 }
 
+// write waits the the channel to receive a message, then writes to the websocket
 func (p *peer) write() { // this function writes messages
 	defer p.close() // closes the peer at the end of the function (means that the connection has been closed)
 	for {
@@ -64,6 +66,7 @@ func (p *peer) write() { // this function writes messages
 	}
 }
 
+// close closes the connection, and deletes itself from the Peers map
 func (p *peer) close() {
 	Peers.m.Lock()         // locks it so that no other functions would be able to read it while this function is running
 	defer Peers.m.Unlock() // is unlocked when the function is done running
@@ -71,6 +74,7 @@ func (p *peer) close() {
 	delete(Peers.v, p.key) // delete the peer that disconnected from the map of peers
 }
 
+// GetPeers returns all the peers 
 func GetPeers(p *peers) []string {
 	p.m.Lock()
 	defer p.m.Unlock()

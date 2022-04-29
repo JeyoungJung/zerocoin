@@ -66,7 +66,8 @@ func restoreKey() *ecdsa.PrivateKey {
 	return key
 }
 
-func addressFromKey(key *ecdsa.PrivateKey) string { // this function gets the public key (aka address)
+// addressFromKey gets the public key (aka address)
+func addressFromKey(key *ecdsa.PrivateKey) string {
 	// this makes the publicKey to be together as a string
 	// if you do address := key.PublicKey it will include the eliptic curve as an element, and the X and Y would be divided into 2
 	// (Look at the key.PublicKey struct to be reminded)
@@ -86,7 +87,8 @@ func encodeBigInts(a, b []byte) string {
 	return fmt.Sprintf("%x", z)
 }
 
-func restoreBigInts(payload string) (*big.Int, *big.Int, error) { // Gets string, return them in big Ints
+// restoreBigInts gets string, return them in big Ints
+func restoreBigInts(payload string) (*big.Int, *big.Int, error) {
 	bytes, err := hex.DecodeString(payload) // decodes string into bytes
 	if err != nil {
 		return nil, nil, err
@@ -105,7 +107,9 @@ func decodeString(payload string) []byte {
 	return payloadBytes
 }
 
-func Verify(signature, payload, address string) bool { // for verification you will need, the signature, payload and publicKey (address)
+// Verify verifies if the transaction is the owner's
+// for verification you will need, the signature, payload and publicKey (address)
+func Verify(signature, payload, address string) bool {
 	r, s, err := restoreBigInts(signature) // changed the string into bigInts
 	utils.HandleErr(err)
 	x, y, err := restoreBigInts(address) // changed the string into bigInts

@@ -11,6 +11,7 @@ import (
 
 var upgrader = websocket.Upgrader{}
 
+// Upgrade upgrades the http connection to a ws conenction
 func Upgrade(rw http.ResponseWriter, r *http.Request) {
 	// Port :3000 will upgrade the request from :4000
 	openPort := r.URL.Query().Get("openPort")        // gets the port the upgrade was requested from
@@ -26,7 +27,8 @@ func Upgrade(rw http.ResponseWriter, r *http.Request) {
 	initPeer(conn, ip, openPort)
 }
 
-func AddPeer(address, port, openPort string, broadcast bool) { // this function takes in the its PEER's port
+// AddPeer takes in the its Peer's port, and adds it to the Peers map
+func AddPeer(address, port, openPort string, broadcast bool) {
 	// Port :4000 is requesting an upgrade from the port :3000
 	fmt.Printf("%s wants to connect to port %s\n", openPort, port)
 	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://%s:%s/ws?openPort=%s", address, port, openPort), nil) // it is going to call the Upgrade function, which will upgrade that page to Websocket
@@ -39,6 +41,7 @@ func AddPeer(address, port, openPort string, broadcast bool) { // this function 
 	// with the current most up to date blockchain.
 }
 
+// BroadcastNewBlock broadcasts the new block to other peers
 func BroadcastNewBlock(b *blockchain.Block) {
 	Peers.m.Lock()
 	defer Peers.m.Unlock()
@@ -47,6 +50,7 @@ func BroadcastNewBlock(b *blockchain.Block) {
 	}
 }
 
+// BroadcastNewTx broadcasts the new transaction to other peers
 func BroadcastNewTx(tx *blockchain.Tx) {
 	Peers.m.Lock()
 	defer Peers.m.Unlock()
@@ -55,6 +59,7 @@ func BroadcastNewTx(tx *blockchain.Tx) {
 	}
 }
 
+// broadcastNewPeer broadcasts the new peer to other peers
 func broadcastNewPeer(newPeer *peer) {
 	for key, p := range Peers.v {
 		if key != newPeer.key { // if the peer is not the newPeer, notify the peer that a new peer was added

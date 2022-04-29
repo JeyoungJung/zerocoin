@@ -44,6 +44,7 @@ func sendNewestBlock(p *peer) {
 	p.inbox <- m // send the message to the channel, next funtion would be write()
 }
 
+// handleMsg handles the incoming message accordingly to their MessageKind
 func handleMsg(m *Message, p *peer) {
 	switch m.Kind {
 	case MessageNewestBlock:
@@ -83,33 +84,38 @@ func handleMsg(m *Message, p *peer) {
 		var payload string
 		utils.HandleErr(json.Unmarshal(m.Payload, &payload))
 		parts := strings.Split(payload, ":")
-		AddPeer(parts[0], parts[1], parts[2], false) // the broadcast part of the AddPeer() is false because the 
+		AddPeer(parts[0], parts[1], parts[2], false) // the broadcast part of the AddPeer() is false because the
 		// peer is beign broadcasted right now, doesnt have to be broadcasted again
 	}
 }
 
-func requestAllBlocks(p *peer) { // this function requests for the entire blockchain to be sent
+// requestAllBlocks requests for the entire blockchain to be sent
+func requestAllBlocks(p *peer) {
 	m := makeMessage(MessageAllBlocksRequest, nil)
 	p.inbox <- m
 }
 
-func sendAllBlocks(p *peer) { // this function sends the response and the entire blockchain
+// sendAllBlocks sends the response and the entire blockchain
+func sendAllBlocks(p *peer) {
 	fmt.Printf("Sent all blocks to %s\n", p.key)
 	m := makeMessage(MessageAllBlocksResponse, blockchain.GetBlockchain(blockchain.Blockchain()))
 	p.inbox <- m
 }
 
-func notifyNewBlock(b *blockchain.Block, p *peer) { // sends the MessageKind with the Block to the peer
+// notifyNewBlock sends the MessageKind with the Block to the peer
+func notifyNewBlock(b *blockchain.Block, p *peer) {
 	m := makeMessage(MessageNewBlockNotify, b)
 	p.inbox <- m
 }
 
-func notifyNewTx(b *blockchain.Tx, p *peer) { // sends the MessageKind with the tx to the peer
+// notifyNewTx sends the MessageKind with the tx to the peer
+func notifyNewTx(b *blockchain.Tx, p *peer) {
 	m := makeMessage(MessageNewTxNotify, b)
 	p.inbox <- m
 }
 
-func notifyNewPeer(b string, p *peer) { // sends the MessageKind with the tx to the peer
+// notifyNewPeer sends the MessageKind with the tx to the peer
+func notifyNewPeer(b string, p *peer) {
 	m := makeMessage(MessageNewPeerNotify, b)
 	p.inbox <- m
 }

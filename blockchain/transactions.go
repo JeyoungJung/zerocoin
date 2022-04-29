@@ -41,7 +41,8 @@ type UTxOut struct {
 	Amount int
 }
 
-type mempool struct { // mempool is where transactions are held before verification, it just stays in the memory
+// mempool is where transactions are held before verification, it just stays in the memory
+type mempool struct {
 	// no need to go to the database
 	Txs map[string]*Tx // "txID" : tx
 	m   sync.Mutex
@@ -59,8 +60,9 @@ func Mempool() *mempool {
 	return m
 }
 
-func makeCoinbaseTx(address string) *Tx { // coinbase transaction is the first transaction in a block,
-	// where the reward is given to the miner, added immediately when a block in added to the blockchain
+// coinbase transaction is the first transaction in a block,
+// where the reward is given to the miner, added immediately when a block in added to the blockchain
+func makeCoinbaseTx(address string) *Tx {
 	txIns := []*TxIn{
 		{"", -1, "COINBASE"},
 	}
@@ -77,13 +79,15 @@ func makeCoinbaseTx(address string) *Tx { // coinbase transaction is the first t
 	return &tx
 }
 
-func (tx *Tx) sign() { // signs every txIn
+// sign signs every txIn
+func (tx *Tx) sign() {
 	for _, txIn := range tx.TxIns {
 		txIn.Signature = wallet.Sign(tx.ID, wallet.Wallet())
 	}
 }
 
-func validate(tx *Tx) bool { // validates the ownership of the money
+// validate validates the ownership of the money
+func validate(tx *Tx) bool {
 	valid := true
 	for _, txIn := range tx.TxIns {
 		prevTx := FindTx(Blockchain(), txIn.TxID) // find a tx with the same ID as the txIn
@@ -102,8 +106,9 @@ func validate(tx *Tx) bool { // validates the ownership of the money
 	return valid
 }
 
-func isOnMempool(uTxOut *UTxOut) bool { // this functions checks if the uTxOut already exists on the mempool
-	// if it already exists, you shouldn't be able to use it again since, it has already been used.
+// isOnMempool checks if the uTxOut already exists on the mempool
+// if it already exists, you shouldn't be able to use it again since it has already been used.
+func isOnMempool(uTxOut *UTxOut) bool {
 	exists := false
 Outer: // this is called a "label"
 	for _, tx := range Mempool().Txs {
@@ -120,7 +125,8 @@ Outer: // this is called a "label"
 var ErrorNoMoney = errors.New("not enough funds")
 var ErrorNotValid = errors.New("Tx Invalid")
 
-func makeTx(from, to string, amount int) (*Tx, error) { // this function makes the transactions
+// makeTx makes the transactions
+func makeTx(from, to string, amount int) (*Tx, error) {
 	if TotalBalanceByAddress(from, Blockchain()) < amount {
 		return nil, ErrorNoMoney
 	}
@@ -185,9 +191,7 @@ func (m *mempool) TxToConfirm() []*Tx {
 // the TxID of that transaction's txIn (between 2 people) would have the same TxID as the "id" of the actual transaction.
 // Notice how the TxID of every coinbase transaction is just empty, that part should be the same as the actual id
 // of the transaction.
-
 // Conclusion: ID is the same if you used money from that transaction
-
 func UTxOutsByAddress(address string, b *blockchain) []*UTxOut { // this function finds all of the TxOuts that haven't been used by an input yet
 	// so basically finding the unused money, aka remaining balance
 	var uTxOuts []*UTxOut
@@ -219,7 +223,8 @@ func UTxOutsByAddress(address string, b *blockchain) []*UTxOut { // this functio
 	return uTxOuts
 }
 
-func TotalBalanceByAddress(address string, b *blockchain) int { // this function finds the total balance for a specific address
+// TotalBalanceByAddress finds the total balance for a specific address
+func TotalBalanceByAddress(address string, b *blockchain) int {
 	txOuts := UTxOutsByAddress(address, b) // Gathered txOuts for that address
 	var amount int
 	for _, txOut := range txOuts {
@@ -228,7 +233,8 @@ func TotalBalanceByAddress(address string, b *blockchain) int { // this function
 	return amount
 }
 
-func GetTxs(b *blockchain) []*Tx { // returns every transaction inside the blockchain
+// GetTxs returns every transaction inside the blockchain
+func GetTxs(b *blockchain) []*Tx {
 	var txs []*Tx
 	for _, block := range GetBlockchain(b) {
 		txs = append(txs, block.Transactions...)
@@ -236,7 +242,8 @@ func GetTxs(b *blockchain) []*Tx { // returns every transaction inside the block
 	return txs
 }
 
-func FindTx(b *blockchain, targetID string) *Tx { // returns a transaction with the targetID,
+// FindTx returns a transaction with the targetID
+func FindTx(b *blockchain, targetID string) *Tx {
 	for _, tx := range GetTxs(b) {
 		if tx.ID == targetID {
 			return tx
@@ -245,8 +252,9 @@ func FindTx(b *blockchain, targetID string) *Tx { // returns a transaction with 
 	return nil
 }
 
-func (m *mempool) AddPeerTx(tx *Tx) { // this function adds the new transaction from the peer to the current mempool
-	// this function is called everytime a new transaction is made by someone
+// AddPeerTx adds the new transaction from the peer to the current mempool
+// AddPeerTx is called everytime a new transaction is made by someone
+func (m *mempool) AddPeerTx(tx *Tx) {
 	m.m.Lock()
 	defer m.m.Unlock()
 	m.Txs[tx.ID] = tx
