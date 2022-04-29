@@ -1,12 +1,15 @@
 package db
 
 import (
-	"github.com/boltdb/bolt"
+	"fmt"
+	"os"
+
 	"github.com/jeyoungjung/zerocoin/utils"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	dbName           = "blockchain.db"
+	dbName           = "blockchain"
 	checkpointBucket = "checkpoints"
 	blocksBucket     = "blocks"
 	checkpoint       = "checkpoint"
@@ -14,10 +17,15 @@ const (
 
 var db *bolt.DB
 
+func getDbName() string {
+	port := os.Args[2][6:]
+	return fmt.Sprintf("%s_%s.db", dbName, port)
+}
+
 func DB() *bolt.DB { // initializes the database
 	if db == nil {
-		dbPointer, err := bolt.Open(dbName, 0600, nil) // 0600 is the code required for read and write permissions?
-		db = dbPointer                                 // now that the database is made, we can assign it to the original db
+		dbPointer, err := bolt.Open(getDbName(), 0600, nil) // 0600 is the code required for read and write permissions?
+		db = dbPointer                                      // now that the database is made, we can assign it to the original db
 		utils.HandleErr(err)
 		err = db.Update(func(t *bolt.Tx) error { // makes buckets, this is the syntax shown in the actual github for bolt (just copy paste)
 			_, err := t.CreateBucketIfNotExists([]byte(checkpointBucket)) // creates a bucket named "checkpoints", this bucket only holds the data for the checkpoints
@@ -74,4 +82,13 @@ func GetBlockData(hash string) []byte {
 
 func CloseDatabase() {
 	DB().Close()
+}
+
+func EmptyBlocks() { // deletes the current blocksbucket and creates a new one
+	DB().Update(func(t *bolt.Tx) error {
+		utils.HandleErr(t.DeleteBucket([]byte(blocksBucket)))
+		_, err := t.CreateBucket([]byte(blocksBucket))
+		utils.HandleErr(err)
+		return nil
+	})
 }

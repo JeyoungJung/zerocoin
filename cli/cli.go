@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
 
 	explorer "github.com/jeyoungjung/zerocoin/explorer/templates"
 	"github.com/jeyoungjung/zerocoin/rest"
@@ -15,7 +14,7 @@ func usage() {
 	fmt.Printf("Please use the following flags:\n\n")
 	fmt.Printf("-port:		Set the PORT of the server\n")
 	fmt.Printf("-mode:		Choose between 'html' and 'rest'\n\n")
-	runtime.Goexit()
+	os.Exit(0)
 }
 
 func Start() {

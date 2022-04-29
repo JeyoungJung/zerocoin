@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <form>
+      <input type="text" placeholder="Text" />
+    </form>
+    <span></span>
+    <script>
+      const form = document.querySelector("form");
+      const input = document.querySelector("input");
+      const span = document.querySelector("span");
+      const socket = new WebSocket("ws://localhost:4000/ws");
+      socket.addEventListener("close", () => console.log("closed")); // dont need curly brackets on one liner arrow functions
+      socket.addEventListener("message", (e) => {
+        span.innerHTML = span.innerHTML + `\n${e.data}`; // backticks allows you to create strings, this turne e.data into strings
+      });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault(); // doesnt redirect the webpage
+        socket.send(input.value); // sends whats in the form to the socket
+        input.value = "";
+      });
+    </script>
+  </body>
+</html>

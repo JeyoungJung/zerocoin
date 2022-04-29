@@ -8,7 +8,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jeyoungjung/zerocoin/blockchain"
+	"github.com/jeyoungjung/zerocoin/p2p"
 	"github.com/jeyoungjung/zerocoin/utils"
+	"github.com/jeyoungjung/zerocoin/wallet"
 )
 
 var port string
@@ -39,17 +41,29 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Description: "Add A Block",
 			Payload:     "data:string",
 		}, {
+			URL:         url("/status"),
+			Method:      "GET",
+			Description: "See the Status of the Blockchain",
+		}, {
 			URL:         url("/blocks/{hash}"),
 			Method:      "GET",
 			Description: "See A Block",
+		}, {
+			URL:         url("/balance/{address}"),
+			Method:      "GET",
+			Description: "Get TxOuts for an Address",
+		}, {
+			URL:         url("/ws"),
+			Method:      "GET",
+			Description: "Upgrade to WebSockets",
 		},
 	}
 	json.NewEncoder(rw).Encode(data)
 }
 
-type addBlockBody struct {
-	Message string
-}
+// type addBlockBody struct {
+// 	Message string
+// }
 
 // You may ask, why struct?
 // It has to be a struct decode something.
@@ -58,14 +72,14 @@ type addBlockBody struct {
 func blocks(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		json.NewEncoder(rw).Encode(blockchain.Blockchain().GetBlockchain())
-		//converts the blockchain data to json
+		json.NewEncoder(rw).Encode(blockchain.GetBlockchain(blockchain.Blockchain())) //converts the blockchain data to json
 	case "POST":
-		var addBlockBody addBlockBody
-		utils.HandleErr(json.NewDecoder(r.Body).Decode(&addBlockBody)) // this function returns an error, hence the utils.HandleErr()
+		//var addBlockBody addBlockBody
+		//utils.HandleErr(json.NewDecoder(r.Body).Decode(&addBlockBody)) // this function returns an error, hence the utils.HandleErr()
 		// Explanation: new decoder is made, the the r.body (consisting of data like "second block") is decoded into the actual addBlockBody
 		// https://stackoverflow.com/questions/21197239/decoding-json-using-json-unmarshal-vs-json-newdecoder-decode
-		blockchain.Blockchain().AddBlock(addBlockBody.Message)
+		newBlock := blockchain.Blockchain().AddBlock()
+		p2p.BroadcastNewBlock(newBlock)
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
@@ -94,13 +108,100 @@ func jsonContentTypeMiddleware(next http.Handler) http.Handler { // this functio
 	})
 }
 
+func status(rw http.ResponseWriter, r *http.Request) {
+	blockchain.Status(blockchain.Blockchain(), rw)
+}
+
+type balanceResponse struct {
+	Address string `json:"address"`
+	Balance int    `json:"balance"`
+}
+
+func loggerMiddleware(next http.Handler) http.Handler { // just logs which url it's on
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.RequestURI)
+		next.ServeHTTP(rw, r)
+	})
+}
+
+func balance(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	address := vars["address"]
+	total := r.URL.Query().Get("total")
+	switch total {
+	case "true": // if "http://localhost:4000/balance/zero?total=true" return the total balance
+		amount := blockchain.TotalBalanceByAddress(address, blockchain.Blockchain())
+		json.NewEncoder(rw).Encode(balanceResponse{address, amount})
+	default: // if "http://localhost:4000/balance/zero" return receipts for each transactions
+		utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.UTxOutsByAddress(address, blockchain.Blockchain())))
+	}
+}
+
+func mempool(rw http.ResponseWriter, r *http.Request) {
+	utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.Mempool().Txs))
+}
+
+type addTxPayload struct {
+	To     string
+	Amount int
+}
+
+func transactions(rw http.ResponseWriter, r *http.Request) { // this is a POST only function
+	// the payload consists of "To" and "Amount" which will send that much amount to that someone.
+	// if there is an error, it means that theres not enough money.
+	var payload addTxPayload
+	utils.HandleErr(json.NewDecoder(r.Body).Decode(&payload))
+	newTx, err := blockchain.Mempool().AddTx(payload.To, payload.Amount)
+	if err != nil {
+		json.NewEncoder(rw).Encode(errorResponse{"not enough funds"})
+	}
+	p2p.BroadcastNewTx(newTx) // sends this transaction to other peers
+	rw.WriteHeader(http.StatusCreated)
+}
+
+type myWalletResponse struct {
+	Address string `json:"address"`
+}
+
+func myWallet(rw http.ResponseWriter, r *http.Request) {
+	address := wallet.Wallet().Address
+	json.NewEncoder(rw).Encode(myWalletResponse{Address: address})
+	// json.NewEncoder(rw).Encode(struct {
+	// 	Address string `json:"address"`
+	// }{Address: address})
+	// the commented out way is called a anonymous struct
+}
+
+type addPeerPayload struct {
+	Address, Port string
+}
+
+func peers(rw http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		var payload addPeerPayload
+		json.NewDecoder(r.Body).Decode(&payload)
+		p2p.AddPeer(payload.Address, payload.Port, port[1:], true)
+		rw.WriteHeader(http.StatusOK)
+	case "GET":
+		json.NewEncoder(rw).Encode(p2p.GetPeers(&p2p.Peers))
+	}
+}
+
 func Start(startPort int) {
 	port = fmt.Sprintf(":%d", startPort)
 	router := mux.NewRouter()
-	router.Use(jsonContentTypeMiddleware)
-	router.HandleFunc("/", documentation)
-	router.HandleFunc("/blocks", blocks)
-	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block) // means that the hash can have values from a-f and 0-9 (hexadecimal)
+	router.Use(jsonContentTypeMiddleware, loggerMiddleware)
+	router.HandleFunc("/", documentation).Methods("GET")
+	router.HandleFunc("/status", status).Methods("GET")
+	router.HandleFunc("/blocks", blocks).Methods("GET", "POST")
+	router.HandleFunc("/balance/{address}", balance).Methods("GET")
+	router.HandleFunc("/mempool", mempool).Methods("GET")
+	router.HandleFunc("/transactions", transactions).Methods("POST")
+	router.HandleFunc("/wallet", myWallet).Methods("GET")
+	router.HandleFunc("/ws", p2p.Upgrade).Methods("GET")
+	router.HandleFunc("/peers", peers).Methods("GET", "POST")
+	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods("GET") // means that the hash can have values from a-f and 0-9 (hexadecimal)
 	fmt.Printf("Listening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }

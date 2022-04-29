@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 )
 
 func HandleErr(err error) {
@@ -14,7 +16,7 @@ func HandleErr(err error) {
 	}
 }
 
-func EncodeFromStructToBytes(i interface{}) []byte { // https://stackoverflow.com/questions/16330490/in-go-how-can-i-convert-a-struct-to-a-byte-array
+func EncodeToBytes(i interface{}) []byte { // https://stackoverflow.com/questions/16330490/in-go-how-can-i-convert-a-struct-to-a-byte-array
 	var Result bytes.Buffer                      // A buffer is just a container or holding tank to read data from or write data to
 	HandleErr(gob.NewEncoder(&Result).Encode(i)) // **important** this code will be replicated a lot, just know
 	return Result.Bytes()
@@ -29,6 +31,20 @@ func DecodeFromBytesToStruct(data []byte, i interface{}) { // here i is the bloc
 
 func Hash(i interface{}) string {
 	s := fmt.Sprintf("%v", i)
-	hash := sha256.Sum256([]byte(s))
-	return fmt.Sprintf("%x", hash)
+	hash := sha256.Sum256([]byte(s)) // hashes the sum of everything inside "i"
+	return fmt.Sprintf("%x", hash)   // returns the value in hexadecimal characters but in string format
+}
+
+func StringSplitter(s string, sep string, i int) string {
+	r := strings.Split(s, sep)
+	if len(r)-1 < i {
+		return ""
+	}
+	return r[i]
+}
+
+func MarshalToJSON(i interface{}) []byte {
+	r, err := json.Marshal(i)
+	HandleErr(err)
+	return r
 }
