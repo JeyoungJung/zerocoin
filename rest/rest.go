@@ -154,9 +154,9 @@ func transactions(rw http.ResponseWriter, r *http.Request) { // this is a POST o
 	newTx, err := blockchain.Mempool().AddTx(payload.To, payload.Amount)
 	if err != nil {
 		json.NewEncoder(rw).Encode(errorResponse{"not enough funds"})
+		return
 	}
 	p2p.BroadcastNewTx(newTx) // sends this transaction to other peers
-	rw.WriteHeader(http.StatusCreated)
 }
 
 type myWalletResponse struct {
