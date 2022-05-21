@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jeyoungjung/zerocoin/db"
 	explorer "github.com/jeyoungjung/zerocoin/explorer/templates"
 	"github.com/jeyoungjung/zerocoin/rest"
 )
@@ -18,10 +19,10 @@ func usage() {
 }
 
 func Start() {
-	if len(os.Args) == 1 { // If the there is nothing after the, go run main.go, run usage
+	if len(os.Args) == 2 { // If the there is nothing after the, go run main.go, run usage
 		usage()
 	}
-
+	db.InitDB()
 	port := flag.Int("port", 4000, "Set port of the server")
 	mode := flag.String("mode", "rest", "Choose between 'html' and 'rest'")
 

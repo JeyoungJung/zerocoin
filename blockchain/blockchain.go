@@ -28,12 +28,14 @@ var once sync.Once
 
 // Blockchain makes a new blockchain or restores an existing blockchain when ran for the first time
 func Blockchain() *blockchain {
+
 	// or just returns the blockchain in the databse if its not the first time running
 	once.Do(func() { // https://medium.com/easyread/just-call-your-code-only-once-256f69ed39a8
 		// Do function will not end until the function inside the Do function ends. Meaning it will cause a deadlock
 		b = &blockchain{
 			Height: 0,
 		}
+
 		checkpoint := db.GetCheckpointData()
 		if checkpoint == nil { // if there is no checkpoint make a genesis block
 			b.AddBlock()
