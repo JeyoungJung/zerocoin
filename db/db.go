@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/jeyoungjung/zerocoin/utils"
 	bolt "go.etcd.io/bbolt"
@@ -20,6 +21,11 @@ var db *bolt.DB
 // DbName returns the name for the Db according to the port number
 func DbName() string {
 	port := os.Args[2][6:]
+	_, err := strconv.Atoi(port)
+	if err != nil {
+		port = os.Args[1][6:]
+	}
+	fmt.Printf("%v", port)
 	return fmt.Sprintf("%s_%s.db", dbName, port)
 }
 
