@@ -138,7 +138,7 @@ func balance(rw http.ResponseWriter, r *http.Request) {
 }
 
 func mempool(rw http.ResponseWriter, r *http.Request) {
-	utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.Mempool().Txs))
+	utils.HandleErr(json.NewEncoder(rw).Encode(blockchain.Mempool()))
 }
 
 type addTxPayload struct {

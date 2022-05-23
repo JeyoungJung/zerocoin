@@ -44,7 +44,7 @@ type UTxOut struct {
 // mempool is where transactions are held before verification, it just stays in the memory
 type mempool struct {
 	// no need to go to the database
-	Txs map[string]*Tx // "txID" : tx
+	Txs map[string]*Tx `json:"txs"` // "txID" : tx
 	m   sync.Mutex
 }
 
@@ -79,14 +79,14 @@ func makeCoinbaseTx(address string) *Tx {
 	return &tx
 }
 
-// sign signs every txIn
+// sign makes signature for txIn
 func (tx *Tx) sign() {
 	for _, txIn := range tx.TxIns {
 		txIn.Signature = wallet.Sign(tx.ID, wallet.Wallet())
 	}
 }
 
-// validate validates the ownership of the money
+// validate checks the ownership of the money
 func validate(tx *Tx) bool {
 	valid := true
 	for _, txIn := range tx.TxIns {
@@ -125,7 +125,7 @@ Outer: // this is called a "label"
 var ErrorNoMoney = errors.New("not enough funds")
 var ErrorNotValid = errors.New("Tx Invalid")
 
-// makeTx makes the transactions
+// makeTx creates the transactions
 func makeTx(from, to string, amount int) (*Tx, error) {
 	if TotalBalanceByAddress(from, Blockchain()) < amount {
 		return nil, ErrorNoMoney

@@ -107,7 +107,7 @@ func decodeString(payload string) []byte {
 	return payloadBytes
 }
 
-// Verify verifies if the transaction is the owner's
+// Verify checks if the transaction is the owner's
 // for verification you will need, the signature, payload and publicKey (address)
 func Verify(signature, payload, address string) bool {
 	r, s, err := restoreBigInts(signature) // changed the string into bigInts
