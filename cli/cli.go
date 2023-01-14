@@ -19,7 +19,7 @@ func usage() {
 }
 
 func Start() {
-	if len(os.Args) == 2 { // If the there is nothing after the, go run main.go, run usage
+	if len(os.Args) <= 2 { // If the there is nothing after the, go run main.go, run usage
 		usage()
 	}
 	db.InitDB()
