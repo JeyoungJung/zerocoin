@@ -2,7 +2,7 @@
 
 ### To start the program:
 
-    go run main.go
+    go run main.go -mode=rest -port=4000
 
 ### Flags
 
@@ -11,12 +11,8 @@ There are 2 flags:
 - mode
 - port
   
-For mode, you can either put `rest` for the REST API or `html` for the web explorer or `both` to run both (this flag is required).  
-For port, you can put your port number (default is 4000).
-
-Example: 
-
-    go run main.go -mode=rest -port=5000
+For mode, you can either put `rest` for the REST API or `html` for the web explorer or `both` to run both.  
+For port, you can put your port number.
 
 What I learned more about during this project:
 
